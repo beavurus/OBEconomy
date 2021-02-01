@@ -1,0 +1,17 @@
+main: io.offbit.obeconomy.PluginEntry
+name: OBEconomy
+version: 1.0.0
+description: This plugin adds gold nuggets as main economy.
+api-version: 1.13
+author: beavurus
+loadbefore: [Vault]
+load: STARTUP
+commands:
+  getcurrency:
+    description: get 1 currency item
+    usage: /<command> {player}
+    permission: obeconomy.get
+  balance:
+    description: check your balance
+    usage: /<command>
+    permission: obeconomy.balance
