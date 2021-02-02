@@ -23,16 +23,16 @@ public class CurrencyItem implements Listener
     public static class Container
     {
         public ItemStack itemStack;
-        public CurrencyType currencyType;
+        public Type currencyType;
 
-        Container(ItemStack itemStack, CurrencyType currencyType)
+        Container(ItemStack itemStack, Type currencyType)
         {
             this.itemStack = itemStack;
             this.currencyType = currencyType;
         }
     }
 
-    public enum CurrencyType
+    public enum Type
     {
         BRICK(1),
         NETHER_BRICK(4),
@@ -42,17 +42,35 @@ public class CurrencyItem implements Listener
 
         public final int value;
 
-        CurrencyType(int value)
+        Type(int value)
         {
             this.value = value;
         }
+    }
+
+    public static Material getMaterial(Type type)
+    {
+        switch (type)
+        {
+            case BRICK:
+                return Material.BRICK;
+            case NETHER_BRICK:
+                return Material.NETHER_BRICK;
+            case IRON:
+                return Material.IRON_INGOT;
+            case GOLD:
+                return Material.GOLD_INGOT;
+            case NETHERITE:
+                return Material.NETHERITE_INGOT;
+        }
+        return null;
     }
 
     public static void init(JavaPlugin plugin)
     {
         pluginInstance = plugin;
 
-        ItemStack netheriteBrik = getCurrency(CurrencyType.NETHERITE).itemStack;
+        ItemStack netheriteBrik = getCurrency(Type.NETHERITE).itemStack;
         NamespacedKey namespacedKey = new NamespacedKey(JavaPlugin.getPlugin(PluginEntry.class), "netherite_brik");
         ShapedRecipe recipe = new ShapedRecipe(namespacedKey, netheriteBrik);
         recipe.shape("XX", "XX");
@@ -69,13 +87,13 @@ public class CurrencyItem implements Listener
         {
             if (storageContent == null)
                 continue;
-            if (storageContent.getItemMeta().equals(getCurrency(CurrencyType.BRICK).itemStack.getItemMeta()))
+            if (storageContent.getItemMeta().equals(getCurrency(Type.BRICK).itemStack.getItemMeta()))
                 numBrik++;
         }
         if (event.getRecipe() == null)
             return;
         if (event.getRecipe().getResult().equals(new ItemStack(Material.BRICKS)) && numBrik == 4)
-            craftingInventory.setResult(getCurrency(CurrencyType.NETHER_BRICK).itemStack);
+            craftingInventory.setResult(getCurrency(Type.NETHER_BRICK).itemStack);
     }
 
     @EventHandler
@@ -87,13 +105,13 @@ public class CurrencyItem implements Listener
         {
             if (storageContent == null)
                 continue;
-            if (storageContent.getItemMeta().equals(getCurrency(CurrencyType.NETHER_BRICK).itemStack.getItemMeta()))
+            if (storageContent.getItemMeta().equals(getCurrency(Type.NETHER_BRICK).itemStack.getItemMeta()))
                 numBrik++;
         }
         if (event.getRecipe() == null)
             return;
         if (event.getRecipe().getResult().equals(new ItemStack(Material.NETHER_BRICKS)) && numBrik == 4)
-            craftingInventory.setResult(getCurrency(CurrencyType.IRON).itemStack);
+            craftingInventory.setResult(getCurrency(Type.IRON).itemStack);
     }
 
     @EventHandler
@@ -105,13 +123,13 @@ public class CurrencyItem implements Listener
         {
             if (matrix == null)
                 continue;
-            if (matrix.getItemMeta().equals(getCurrency(CurrencyType.IRON).itemStack.getItemMeta()))
+            if (matrix.getItemMeta().equals(getCurrency(Type.IRON).itemStack.getItemMeta()))
                 numBrik++;
         }
         if (event.getRecipe() == null)
             return;
         if (event.getRecipe().getResult().equals(new ItemStack(Material.IRON_TRAPDOOR)) && numBrik == 4)
-            craftingInventory.setResult(getCurrency(CurrencyType.GOLD).itemStack);
+            craftingInventory.setResult(getCurrency(Type.GOLD).itemStack);
     }
 
     @EventHandler
@@ -123,13 +141,13 @@ public class CurrencyItem implements Listener
         {
             if (matrix == null)
                 continue;
-            if (matrix.getItemMeta().equals(getCurrency(CurrencyType.GOLD).itemStack.getItemMeta()))
+            if (matrix.getItemMeta().equals(getCurrency(Type.GOLD).itemStack.getItemMeta()))
                 numBrik++;
         }
         if (event.getRecipe() == null)
             return;
-        if (event.getRecipe().getResult().equals(getCurrency(CurrencyType.NETHERITE).itemStack) && numBrik == 4)
-            craftingInventory.setResult(getCurrency(CurrencyType.NETHERITE).itemStack);
+        if (event.getRecipe().getResult().equals(getCurrency(Type.NETHERITE).itemStack) && numBrik == 4)
+            craftingInventory.setResult(getCurrency(Type.NETHERITE).itemStack);
     }
 
     @EventHandler
@@ -142,7 +160,7 @@ public class CurrencyItem implements Listener
         {
             if (content == null)
                 continue;
-            if (content.getItemMeta().equals(getCurrency(CurrencyType.NETHERITE).itemStack.getItemMeta()))
+            if (content.getItemMeta().equals(getCurrency(Type.NETHERITE).itemStack.getItemMeta()))
                 valid = false;
         }
         if (!valid)
@@ -159,7 +177,7 @@ public class CurrencyItem implements Listener
         }
     }
 
-    public static CurrencyItem.Container getCurrency(CurrencyType currencyType)
+    public static CurrencyItem.Container getCurrency(Type currencyType)
     {
         ItemStack item;
         String itemName = "";

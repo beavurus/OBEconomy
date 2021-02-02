@@ -20,7 +20,7 @@ public class GetItem implements CommandExecutor
                     if (player == null)
                         commandSender.sendMessage("Couldn't find player " + strings[0]);
                     else
-                        player.getInventory().addItem(CurrencyItem.getCurrency(CurrencyItem.CurrencyType.NETHERITE).itemStack);
+                        player.getInventory().addItem(CurrencyItem.getCurrency(CurrencyItem.Type.NETHERITE).itemStack);
                 }
             } else
             {
@@ -28,7 +28,7 @@ public class GetItem implements CommandExecutor
                 if (player == null)
                     commandSender.sendMessage("Couldn't find player " + strings[0]);
                 else
-                    player.getInventory().addItem(CurrencyItem.getCurrency(CurrencyItem.CurrencyType.NETHERITE).itemStack);
+                    player.getInventory().addItem(CurrencyItem.getCurrency(CurrencyItem.Type.NETHERITE).itemStack);
             }
         } else
         {
@@ -37,7 +37,7 @@ public class GetItem implements CommandExecutor
                 commandSender.sendMessage("Can't run this command with no arguments in console...");
             } else if (commandSender.hasPermission("obeconomy.get"))
             {
-                ((Player) commandSender).getInventory().addItem(CurrencyItem.getCurrency(CurrencyItem.CurrencyType.NETHERITE).itemStack);
+                ((Player) commandSender).getInventory().addItem(CurrencyItem.getCurrency(CurrencyItem.Type.NETHERITE).itemStack);
             }
         }
         return true;

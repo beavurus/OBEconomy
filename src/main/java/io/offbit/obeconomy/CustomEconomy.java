@@ -3,16 +3,102 @@ package io.offbit.obeconomy;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class CustomEconomy implements Economy
 {
     private Plugin plugin;
+
+    /**
+     * Quick helper function to add to map, with increasing values
+     *
+     * @param map    HashMap<Type, Amount>
+     * @param type   Type
+     * @param amount Amount
+     */
+    private void addToMap(Map<CurrencyItem.Type, Integer> map, CurrencyItem.Type type, int amount)
+    {
+        if (map.containsKey(type))
+            map.put(type, map.get(type) + amount);
+        else
+            map.put(type, amount);
+    }
+
+    /**
+     * This method returns an array of all currency on a player
+     *
+     * @param offlinePlayer player
+     * @return item stacks he has of currency type
+     */
+    private Map<CurrencyItem.Type, Integer> getAllCurrencyAmount(OfflinePlayer offlinePlayer)
+    {
+        PlayerInventory playerInventory = offlinePlayer.getPlayer().getInventory();
+        Map<CurrencyItem.Type, Integer> map = new HashMap<CurrencyItem.Type, Integer>();
+
+        for (ItemStack itemStack : playerInventory.getStorageContents())
+        {
+            if (itemStack == null)
+                continue;
+
+            ItemMeta meta = itemStack.getItemMeta();
+
+            if (meta.equals(CurrencyItem.getCurrency(CurrencyItem.Type.BRICK).itemStack.getItemMeta()))
+                addToMap(map, CurrencyItem.Type.BRICK, itemStack.getAmount());
+            else if (meta.equals(CurrencyItem.getCurrency(CurrencyItem.Type.NETHER_BRICK).itemStack.getItemMeta()))
+                addToMap(map, CurrencyItem.Type.NETHER_BRICK, itemStack.getAmount());
+            else if (meta.equals(CurrencyItem.getCurrency(CurrencyItem.Type.IRON).itemStack.getItemMeta()))
+                addToMap(map, CurrencyItem.Type.IRON, itemStack.getAmount());
+            else if (meta.equals(CurrencyItem.getCurrency(CurrencyItem.Type.GOLD).itemStack.getItemMeta()))
+                addToMap(map, CurrencyItem.Type.GOLD, itemStack.getAmount());
+            else if (meta.equals(CurrencyItem.getCurrency(CurrencyItem.Type.NETHERITE).itemStack.getItemMeta()))
+                addToMap(map, CurrencyItem.Type.NETHERITE, itemStack.getAmount());
+        }
+
+        return map;
+    }
+
+    /**
+     * Removes a certain amount of a certain type of currency from player (amount can be divided into multiple stacks)
+     *
+     * @param offlinePlayer player
+     * @param type          type of currency
+     * @param amount        amount to remove
+     */
+    private int removeCurrencyAmount(OfflinePlayer offlinePlayer, CurrencyItem.Type type, int amount)
+    {
+        ItemStack[] stacks = new ItemStack[0];
+        Material material = CurrencyItem.getMaterial(type);
+
+        if (offlinePlayer.getPlayer() == null)
+            return -1;
+
+        if (material != null)
+        {
+            stacks = offlinePlayer.getPlayer().getInventory().all(material).values().toArray(new ItemStack[0]);
+        } else
+            return -1;
+
+        for (ItemStack stack : stacks)
+        {
+            amount -= stack.getAmount();
+            if (stack.getAmount() >= amount)
+                stack.setAmount(stack.getAmount() - amount);
+            else
+                offlinePlayer.getPlayer().getInventory().remove(stack);
+        }
+
+        return amount;
+    }
 
     public CustomEconomy(Plugin plugin)
     {
@@ -26,7 +112,7 @@ public class CustomEconomy implements Economy
 
     public String getName()
     {
-        return "OBEconomy";
+        return "BrikConomy";
     }
 
     public boolean hasBankSupport()
@@ -46,12 +132,12 @@ public class CustomEconomy implements Economy
 
     public String currencyNamePlural()
     {
-        return "Gold Coins";
+        return "Briks";
     }
 
     public String currencyNameSingular()
     {
-        return "Gold Coin";
+        return "Brik";
     }
 
     public boolean hasAccount(String s)
@@ -89,8 +175,16 @@ public class CustomEconomy implements Economy
         {
             if (itemStack == null)
                 continue;
-            if (itemStack.getItemMeta().equals(CurrencyItem.getCurrency(CurrencyItem.CurrencyType.BRICK).itemStack.getItemMeta()))
-                total += itemStack.getAmount();
+            if (itemStack.getItemMeta().equals(CurrencyItem.getCurrency(CurrencyItem.Type.BRICK).itemStack.getItemMeta()))
+                total += itemStack.getAmount() * CurrencyItem.Type.BRICK.value;
+            else if (itemStack.getItemMeta().equals(CurrencyItem.getCurrency(CurrencyItem.Type.NETHER_BRICK).itemStack.getItemMeta()))
+                total += itemStack.getAmount() * CurrencyItem.Type.NETHER_BRICK.value;
+            else if (itemStack.getItemMeta().equals(CurrencyItem.getCurrency(CurrencyItem.Type.IRON).itemStack.getItemMeta()))
+                total += itemStack.getAmount() * CurrencyItem.Type.IRON.value;
+            else if (itemStack.getItemMeta().equals(CurrencyItem.getCurrency(CurrencyItem.Type.GOLD).itemStack.getItemMeta()))
+                total += itemStack.getAmount() * CurrencyItem.Type.GOLD.value;
+            else if (itemStack.getItemMeta().equals(CurrencyItem.getCurrency(CurrencyItem.Type.NETHERITE).itemStack.getItemMeta()))
+                total += itemStack.getAmount() * CurrencyItem.Type.NETHERITE.value;
         }
         return total;
     }
@@ -125,6 +219,7 @@ public class CustomEconomy implements Economy
         return (getBalance(offlinePlayer, s) >= v);
     }
 
+
     public EconomyResponse withdrawPlayer(String s, double amount)
     {
         Player player = Bukkit.getPlayer(s);
@@ -140,30 +235,19 @@ public class CustomEconomy implements Economy
     public EconomyResponse withdrawPlayer(OfflinePlayer offlinePlayer, double amount)
     {
         double currentBalance = getBalance(offlinePlayer);
+        // Since no fractional digits, we round the amount up
+        amount = Math.ceil(amount);
+        // Check if player has enough to withdraw
         if (currentBalance < amount)
             return new EconomyResponse(amount, currentBalance, EconomyResponse.ResponseType.FAILURE, String.format("%s doesn't have enough %s", offlinePlayer.getName(), currencyNamePlural()));
         else
         {
-            for (ItemStack itemStack : offlinePlayer.getPlayer().getInventory().getStorageContents())
+            Map<CurrencyItem.Type, Integer> map = getAllCurrencyAmount(offlinePlayer);
+            PlayerInventory playerInventory = offlinePlayer.getPlayer().getInventory();
+
+            if (map.containsKey(CurrencyItem.Type.BRICK))
             {
-                if (itemStack == null)
-                    continue;
-                else if (itemStack.getItemMeta().equals(CurrencyItem.getCurrency(CurrencyItem.CurrencyType.BRICK).itemStack.getItemMeta()))
-                {
-                    if (itemStack.getAmount() == amount)
-                    {
-                        offlinePlayer.getPlayer().getInventory().remove(itemStack);
-                        break;
-                    } else if (itemStack.getAmount() > amount)
-                    {
-                        itemStack.setAmount(itemStack.getAmount() - (int) amount);
-                        break;
-                    } else
-                    {
-                        amount -= itemStack.getAmount();
-                        offlinePlayer.getPlayer().getInventory().remove(itemStack);
-                    }
-                }
+                if (map.get(CurrencyItem.Type.BRICK) >= amount)
             }
         }
         return new EconomyResponse(amount, getBalance(offlinePlayer), EconomyResponse.ResponseType.SUCCESS, null);
@@ -206,7 +290,7 @@ public class CustomEconomy implements Economy
         ItemStack[] itemStacks = new ItemStack[stacksRequired];
         for (int i = 0; i < stacksRequired; i++)
         {
-            itemStacks[i] = CurrencyItem.getCurrency(CurrencyItem.CurrencyType.BRICK).itemStack;
+            itemStacks[i] = CurrencyItem.getCurrency(CurrencyItem.Type.BRICK).itemStack;
             if (modAmount < 64)
             {
                 itemStacks[i].setAmount(modAmount);
