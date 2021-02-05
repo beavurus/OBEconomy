@@ -1,29 +1,30 @@
-package io.offbit.obeconomy;
+package io.offbit.obeconomy.commands;
 
-import org.bukkit.Bukkit;
+import net.milkbowl.vault.economy.Economy;
+import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 
 public class BalanceCommand implements CommandExecutor
 {
-    private double getBalance(String playerName)
-    {
-        return getBalance(Bukkit.getPlayer(playerName));
-    }
+    private Economy economy;
 
-    private double getBalance(Player player)
+    public BalanceCommand(Economy economyInstance)
     {
-        return JavaPlugin.getPlugin(PluginEntry.class).getEconomy().getBalance(player);
+        this.economy = economyInstance;
     }
 
     public boolean onCommand(CommandSender commandSender, Command command, String s, String[] strings)
     {
         if (commandSender instanceof Player)
         {
-            commandSender.sendMessage(getBalance((Player) commandSender) + " GOLD COINS");
+            double balance = economy.getBalance((Player) commandSender);
+            String res = String.format(ChatColor.GREEN + "" + ChatColor.BOLD + "You have %.2f %s in your account.",
+                    balance,
+                    balance == 1 ? economy.currencyNameSingular() : economy.currencyNamePlural());
+            commandSender.sendMessage(res);
         } else
         {
             return false;
