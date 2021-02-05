@@ -1,15 +1,12 @@
 package io.offbit.obeconomy;
 
+import io.offbit.obeconomy.commands.BalanceCommand;
+import io.offbit.obeconomy.commands.EconomyCommand;
 import net.milkbowl.vault.economy.Economy;
-import net.minecraft.server.v1_16_R3.Block;
-import org.bukkit.Material;
-import org.bukkit.inventory.Recipe;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.ServicesManager;
 import org.bukkit.plugin.java.JavaPlugin;
-
-import java.util.Iterator;
 
 public class PluginEntry extends JavaPlugin
 {
@@ -29,16 +26,15 @@ public class PluginEntry extends JavaPlugin
         Plugin vault = getServer().getPluginManager().getPlugin("Vault");
         if (vault != null)
         {
-//            this.economy = new CustomEconomy();
-            try {
+            try
+            {
                 Class<CustomEconomy> economyClass = CustomEconomy.class;
                 this.economy = economyClass.getConstructor(Plugin.class).newInstance(this);
                 serviceManager.register(Economy.class, economy, this, ServicePriority.Normal);
-            } catch (Exception e) {
+            } catch (Exception e)
+            {
                 e.printStackTrace();
             }
-//            getServer().getServicesManager().register(Economy.class, this.economy, this, ServicePriority.Normal);
-//            getServer().getConsoleSender().sendMessage(ChatColor.GREEN + "VaultAPI hooked.");
         } else
         {
             getLogger().severe("Vault was not found. Disabled this plugin...");
@@ -46,15 +42,15 @@ public class PluginEntry extends JavaPlugin
             return;
         }
 
-
         CurrencyItem.init(this);
 
-        this.getCommand("getcurrency").setExecutor(new GetItem());
-        this.getCommand("balance").setExecutor(new BalanceCommand());
+        this.getCommand("balance").setExecutor(new BalanceCommand(this.economy));
+        this.getCommand("brik").setExecutor(new EconomyCommand(this.economy));
 
-        getServer().getLogger().info("Loaded OBEconomy");
+        this.getCommand("brik").setTabCompleter(new EconomyCommand(this.economy));
 
-        getServer().getPluginManager().registerEvents(new DisabledCraftingEvent(), this);
+        getServer().getLogger().info("Loaded Briks");
+
         getServer().getPluginManager().registerEvents(new CurrencyItem(), this);
     }
 

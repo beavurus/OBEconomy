@@ -74,19 +74,21 @@ public class CustomEconomy implements Economy
      * @param type          type of currency
      * @param amount        amount to remove
      */
-    private int removeCurrencyAmount(OfflinePlayer offlinePlayer, CurrencyItem.Type type, int amount)
+    private boolean removeCurrencyAmount(OfflinePlayer offlinePlayer, CurrencyItem.Type type, int amount)
     {
         ItemStack[] stacks = new ItemStack[0];
         Material material = CurrencyItem.getMaterial(type);
 
+        int materialAmount = (int) Math.floor(amount / type.value);
+
         if (offlinePlayer.getPlayer() == null)
-            return -1;
+            return false;
 
         if (material != null)
         {
             stacks = offlinePlayer.getPlayer().getInventory().all(material).values().toArray(new ItemStack[0]);
         } else
-            return -1;
+            return false;
 
         for (ItemStack stack : stacks)
         {
@@ -97,7 +99,62 @@ public class CustomEconomy implements Economy
                 offlinePlayer.getPlayer().getInventory().remove(stack);
         }
 
-        return amount;
+        return true;
+    }
+
+    public double getBalance(OfflinePlayer offlinePlayer)
+    {
+        double total = 0;
+        for (ItemStack itemStack : offlinePlayer.getPlayer().getInventory().getStorageContents())
+        {
+            if (itemStack == null)
+                continue;
+            if (itemStack.getItemMeta().equals(CurrencyItem.getCurrency(CurrencyItem.Type.BRICK).itemStack.getItemMeta()))
+                total += itemStack.getAmount() * CurrencyItem.Type.BRICK.value;
+            else if (itemStack.getItemMeta().equals(CurrencyItem.getCurrency(CurrencyItem.Type.NETHER_BRICK).itemStack.getItemMeta()))
+                total += itemStack.getAmount() * CurrencyItem.Type.NETHER_BRICK.value;
+            else if (itemStack.getItemMeta().equals(CurrencyItem.getCurrency(CurrencyItem.Type.IRON).itemStack.getItemMeta()))
+                total += itemStack.getAmount() * CurrencyItem.Type.IRON.value;
+            else if (itemStack.getItemMeta().equals(CurrencyItem.getCurrency(CurrencyItem.Type.GOLD).itemStack.getItemMeta()))
+                total += itemStack.getAmount() * CurrencyItem.Type.GOLD.value;
+            else if (itemStack.getItemMeta().equals(CurrencyItem.getCurrency(CurrencyItem.Type.NETHERITE).itemStack.getItemMeta()))
+                total += itemStack.getAmount() * CurrencyItem.Type.NETHERITE.value;
+        }
+        return total;
+    }
+
+    public double getBalance(String s)
+    {
+        Player player = Bukkit.getPlayer(s);
+        if (player == null)
+            return 0;
+        return getBalance(player);
+    }
+
+    public EconomyResponse withdrawPlayer(OfflinePlayer offlinePlayer, double amount)
+    {
+        offlinePlayer.getPlayer().sendMessage("Removing " + amount + "$ from your account.");
+        offlinePlayer.getPlayer().getInventory().remove(CurrencyItem.getCurrency(CurrencyItem.Type.IRON).itemStack);
+        return new EconomyResponse(0, 0, null, null);
+    }
+
+    public EconomyResponse withdrawPlayer(String s, double amount)
+    {
+        return withdrawPlayer(Bukkit.getPlayer(s), amount);
+    }
+
+    public EconomyResponse depositPlayer(String s, double v)
+    {
+        return depositPlayer(Bukkit.getPlayer(s), v);
+    }
+
+    public EconomyResponse depositPlayer(OfflinePlayer offlinePlayer, double amount)
+    {
+        offlinePlayer.getPlayer().sendMessage("Depositing " + amount + "$ into your account.");
+        ItemStack itemStack = CurrencyItem.getCurrency(CurrencyItem.Type.IRON).itemStack;
+//        itemStack.setAmount((int) amount);
+        offlinePlayer.getPlayer().getInventory().addItem(itemStack);
+        return new EconomyResponse(0, 0, null, null);
     }
 
     public CustomEconomy(Plugin plugin)
@@ -160,34 +217,6 @@ public class CustomEconomy implements Economy
         return true;
     }
 
-    public double getBalance(String s)
-    {
-        Player player = Bukkit.getPlayer(s);
-        if (player == null)
-            return 0;
-        return getBalance(player);
-    }
-
-    public double getBalance(OfflinePlayer offlinePlayer)
-    {
-        double total = 0;
-        for (ItemStack itemStack : offlinePlayer.getPlayer().getInventory().getStorageContents())
-        {
-            if (itemStack == null)
-                continue;
-            if (itemStack.getItemMeta().equals(CurrencyItem.getCurrency(CurrencyItem.Type.BRICK).itemStack.getItemMeta()))
-                total += itemStack.getAmount() * CurrencyItem.Type.BRICK.value;
-            else if (itemStack.getItemMeta().equals(CurrencyItem.getCurrency(CurrencyItem.Type.NETHER_BRICK).itemStack.getItemMeta()))
-                total += itemStack.getAmount() * CurrencyItem.Type.NETHER_BRICK.value;
-            else if (itemStack.getItemMeta().equals(CurrencyItem.getCurrency(CurrencyItem.Type.IRON).itemStack.getItemMeta()))
-                total += itemStack.getAmount() * CurrencyItem.Type.IRON.value;
-            else if (itemStack.getItemMeta().equals(CurrencyItem.getCurrency(CurrencyItem.Type.GOLD).itemStack.getItemMeta()))
-                total += itemStack.getAmount() * CurrencyItem.Type.GOLD.value;
-            else if (itemStack.getItemMeta().equals(CurrencyItem.getCurrency(CurrencyItem.Type.NETHERITE).itemStack.getItemMeta()))
-                total += itemStack.getAmount() * CurrencyItem.Type.NETHERITE.value;
-        }
-        return total;
-    }
 
     public double getBalance(String s, String s1)
     {
@@ -220,39 +249,6 @@ public class CustomEconomy implements Economy
     }
 
 
-    public EconomyResponse withdrawPlayer(String s, double amount)
-    {
-        Player player = Bukkit.getPlayer(s);
-        if (player == null)
-        {
-            return new EconomyResponse(amount, 0, EconomyResponse.ResponseType.FAILURE, "Player does not exist.");
-        } else
-        {
-            return withdrawPlayer(player, amount);
-        }
-    }
-
-    public EconomyResponse withdrawPlayer(OfflinePlayer offlinePlayer, double amount)
-    {
-        double currentBalance = getBalance(offlinePlayer);
-        // Since no fractional digits, we round the amount up
-        amount = Math.ceil(amount);
-        // Check if player has enough to withdraw
-        if (currentBalance < amount)
-            return new EconomyResponse(amount, currentBalance, EconomyResponse.ResponseType.FAILURE, String.format("%s doesn't have enough %s", offlinePlayer.getName(), currencyNamePlural()));
-        else
-        {
-            Map<CurrencyItem.Type, Integer> map = getAllCurrencyAmount(offlinePlayer);
-            PlayerInventory playerInventory = offlinePlayer.getPlayer().getInventory();
-
-            if (map.containsKey(CurrencyItem.Type.BRICK))
-            {
-                if (map.get(CurrencyItem.Type.BRICK) >= amount)
-            }
-        }
-        return new EconomyResponse(amount, getBalance(offlinePlayer), EconomyResponse.ResponseType.SUCCESS, null);
-    }
-
     public EconomyResponse withdrawPlayer(String s, String s1, double v)
     {
         return withdrawPlayer(s, v);
@@ -261,52 +257,6 @@ public class CustomEconomy implements Economy
     public EconomyResponse withdrawPlayer(OfflinePlayer offlinePlayer, String s, double amount)
     {
         return withdrawPlayer(offlinePlayer, amount);
-    }
-
-    public EconomyResponse depositPlayer(String s, double v)
-    {
-        Player player = Bukkit.getPlayer(s);
-        if (player == null)
-            return new EconomyResponse(v, 0, EconomyResponse.ResponseType.FAILURE, "Player does not exist.");
-        else
-            return depositPlayer(player, v);
-    }
-
-    public EconomyResponse depositPlayer(OfflinePlayer offlinePlayer, double amount)
-    {
-        int stacksRequired = (int) Math.ceil(amount / 64);
-
-        int freeSpace = 0;
-        for (ItemStack storageContent : offlinePlayer.getPlayer().getInventory().getStorageContents())
-        {
-            if (storageContent == null)
-                freeSpace += 64;
-        }
-        if (amount > freeSpace)
-            return new EconomyResponse(amount, getBalance(offlinePlayer), EconomyResponse.ResponseType.FAILURE, "Player doesnt have enough free space to accept payment.");
-
-        int modAmount = (int) amount;
-
-        ItemStack[] itemStacks = new ItemStack[stacksRequired];
-        for (int i = 0; i < stacksRequired; i++)
-        {
-            itemStacks[i] = CurrencyItem.getCurrency(CurrencyItem.Type.BRICK).itemStack;
-            if (modAmount < 64)
-            {
-                itemStacks[i].setAmount(modAmount);
-                modAmount = 0;
-            } else
-            {
-                itemStacks[i].setAmount(64);
-                modAmount -= 64;
-            }
-
-        }
-        for (ItemStack stack : itemStacks)
-        {
-            offlinePlayer.getPlayer().getInventory().addItem(stack);
-        }
-        return new EconomyResponse(amount, getBalance(offlinePlayer), EconomyResponse.ResponseType.SUCCESS, null);
     }
 
     public EconomyResponse depositPlayer(String s, String s1, double v)
